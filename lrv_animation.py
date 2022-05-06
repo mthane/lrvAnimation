@@ -10,6 +10,7 @@ from matplotlib import gridspec
 from matplotlib.patches import Wedge
 from matplotlib.patches import Polygon
 import argparse
+import os
 import numpy as np, math, matplotlib.patches as patches
 def rotate_vector_clockwise(angle, vector):
     '''postive angle rotates clockwise,
@@ -47,8 +48,17 @@ def animate_track(data_path,
                   ):
     
     
+        #plt.rcParams['animation.ffmpeg_path'] = 'C:/ffmpeg/bin'
+        
         data = pd.read_csv(data_path)
-        track = data[data.id ==id_]
+        if(not(id_ in np.unique(data["id"]))):
+            print("ID is not in the following ids!")
+            print(np.unique(data["id"]))
+            print("Choosing the id with index "+ str(id_) +" which is "+str(data.id[id_]))
+            track = data[data.id ==data.id[id_]]
+        else:           
+            track = data[data.id ==id_]
+            
         if(save_as==None):
              save_as = "larval_animation.mp4"
         if(start==None):
@@ -68,10 +78,10 @@ def animate_track(data_path,
             'fig_width':100,
             'animation_dpi':200,
             'font_size':12,
-            'movie_dir':'.',
+            'movie_dir':os.getcwd(),
             'dt':1/16
             }
-        print(track)
+        #par["movie_dir"]=""
         font_size=12
         '''animates track'''
         if(attribute_name ==None):
@@ -145,10 +155,8 @@ def animate_track(data_path,
 
         cb.ax.set_ylabel(attribute_name, rotation=270, labelpad=20)
         # initialization function: plot the background of each frame
-        head_data = np.array([track['spinepoint_x_11_conv'][5], 
-                                      track['spinepoint_y_11_conv'][5],
-                                      track['spinepoint_x_12_conv'][5], 
-                                      track['spinepoint_y_12_conv'][5]])
+
+
         #head_line = plt.Arrow(head_data[0],head_data[1],head_data[2]-head_data[0],head_data[3]-head_data[1] )
         
         def init():
@@ -162,25 +170,36 @@ def animate_track(data_path,
             contour_line.set_xy(np.nan * np.zeros((2, 2)))
             return (midpoint_line,head_line, head_line_left, head_line_right,
                     current_spine, contour_line)
-
-
-    
+        
+        spinepoints = [['spinepoint_x_'+str(idx+1)+"_conv"]+['spinepoint_y_'+str(idx+1)+"_conv"] for idx in range(12)]
+        contourpoints = [['contourpoint_x_'+str(idx+1)+"_conv"]+['contourpoint_y_'+str(idx+1)+"_conv"] for idx in range(22)]
+        columns = ["frame"]+spinepoints + contourpoints + [attribute]
+        def flat2gen(alist):
+          for item in alist:
+            if isinstance(item, list):
+              for subitem in item: yield subitem
+            else:
+              yield item
+        columns = flat2gen(columns)
+        print(columns)
+        track = track[columns].dropna()
+        track.index = range(0,len(track.index))
         # animation function
         def animate(i):
             
             #midpoint_line.set_data(self.spine[4][:i, 0], self.spine[4][:i, 1])
-
+            
            
-            if(not(i in np.where(np.isnan(track.spinepoint_x_1_conv))[0])):
+            if(not(i in np.where(np.isnan(np.array(track.spinepoint_x_1_conv)))[0])):
                 current_spine.set_data(
                     [track['spinepoint_x_'+str(idx+1)+"_conv"][i] for idx in range(12)],
                     [track['spinepoint_y_'+str(idx+1)+"_conv"][i] for idx in range(12)]
                 )
 
-                head_data = np.array([track['spinepoint_x_9_conv'][i], 
-                                      track['spinepoint_y_9_conv'][i],
-                                      track['spinepoint_x_11_conv'][i], 
-                                      track['spinepoint_y_11_conv'][i]])
+                head_data = np.array([track['spinepoint_x_9_conv'].iloc[i], 
+                                      track['spinepoint_y_9_conv'].iloc[i],
+                                      track['spinepoint_x_11_conv'].iloc[i], 
+                                      track['spinepoint_y_11_conv'].iloc[i]])
                 #head_data = head_data.reshape((i,2))
                 #head_data = head_data.T
                 head_line.set_data([head_data[2]],[head_data[3]])
@@ -190,14 +209,14 @@ def animate_track(data_path,
 
                
                 
-                contour_data = np.array([[track['contourpoint_x_'+str(idx+1)+"_conv"][i],
-                                              track['contourpoint_y_'+str(idx+1)+"_conv"][i]]
+                contour_data = np.array([[track['contourpoint_x_'+str(idx+1)+"_conv"].iloc[i],
+                                              track['contourpoint_y_'+str(idx+1)+"_conv"].iloc[i]]
                                               for idx in range(22)])
                
 
                 contour_line.set_xy(contour_data)
                
-                contour_line.set_color(cmap(norm(track[attribute][i])))
+                contour_line.set_color(cmap(norm(track[attribute].iloc[i])))
                 # time text
                 time_text.set_text(str(np.round(track.frame[i]/16, 1)) + ' seconds')
                 
@@ -213,10 +232,10 @@ def animate_track(data_path,
                 # zoom in
                 if zoom:
                     plt.setp(ax1,
-                             xlim=(track['spinepoint_x_5_conv'][i] - zoom_dx,
-                                   track['spinepoint_x_5_conv'][i]+ zoom_dx),
-                             ylim=(track['spinepoint_y_5_conv'][i] - zoom_dx,
-                                   track['spinepoint_y_5_conv'][i] + zoom_dx))
+                             xlim=(track['spinepoint_x_5_conv'].iloc[i] - zoom_dx,
+                                   track['spinepoint_x_5_conv'].iloc[i]+ zoom_dx),
+                             ylim=(track['spinepoint_y_5_conv'].iloc[i] - zoom_dx,
+                                   track['spinepoint_y_5_conv'].iloc[i] + zoom_dx))
     
                 # if step ( do not show steps at the moment)
                 if(False):
@@ -237,18 +256,21 @@ def animate_track(data_path,
             interval=int(1000. / speed) * float(par['dt']),
             repeat=False)
 
-        # save or show movie
-        if True:
-            print('Saving movie... this may take some time')
+        print(ani)
+        print('Saving movie... this may take some time')
 
-            # bitrate = 100 - 600 works fine
-            mywriter = animation.FFMpegWriter(fps = np.round(1 / float(par['dt'])))
+        # bitrate = 100 - 600 works fine
+        mywriter = animation.FFMpegWriter(fps = np.round(1 / float(par['dt'])))
+        
+        save_in = par['movie_dir'] +'/' + save_as + '.mp4'
+        #print(save_in)
+        #print(plt.rcParams['animation.ffmpeg_path'])
+        save_in = save_in.replace("\\","/")
+        #save_in = save_as
+        ani.save(save_in,
+                 writer=mywriter)
 
-            ani.save(par['movie_dir'] +
-                     '/' + save_as + '.mp4',
-                     writer=mywriter)
-
-            print('...done')
+        print('...done')
 
         plt.rcParams['savefig.dpi'] = old_dpi
 
