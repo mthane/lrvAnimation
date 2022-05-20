@@ -1,0 +1,1 @@
+python lrv_animation.py experiment-2022-04-07_analyzed.csv 1 "tail_vel_forward" -1.5 1.5 --start 10 --end 60 --attr_name "Tail forward velocity" --save_as "test"
