@@ -180,8 +180,8 @@ def animate_track(data_path,
               for subitem in item: yield subitem
             else:
               yield item
-        columns = flat2gen(columns)
-        print(columns)
+        columns = list(flat2gen(columns))
+        
         track = track[columns].dropna()
         track.index = range(0,len(track.index))
         # animation function
@@ -256,7 +256,6 @@ def animate_track(data_path,
             interval=int(1000. / speed) * float(par['dt']),
             repeat=False)
 
-        print(ani)
         print('Saving movie... this may take some time')
 
         # bitrate = 100 - 600 works fine
