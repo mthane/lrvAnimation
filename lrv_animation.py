@@ -146,7 +146,7 @@ def animate_track(data_path,
         if(vmin<0):
             cmap = cm.get_cmap("bwr")
         else:
-            cmap = cm.get_cmap("Reds")
+            cmap = cm.get_cmap("viridis")
             
         norm = Normalize(vmin=vmin, vmax=vmax)
         cb =matplotlib.colorbar.ColorbarBase(cax, cmap=cmap,
